@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<title>batabicmschool</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    text-align: center;
+}
+.container { margin-top: 50px; }
+input, button {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 8px;
+    border: none;
+}
+button { background: #22c55e; color: white; cursor: pointer; }
+.hidden { display: none; }
+.card {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 10px auto;
+    width: 300px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🎓 batabicmschool</h1>
+<p>कक्षाएं शनिवार रात 10:45 बजे (मक्का समय) शुरू होती हैं</p>
+
+<!-- AUTH -->
+<div id="auth" class="card">
+    <h3>साइन अप / लॉगिन</h3>
+    <input type="email" id="email" placeholder="ईमेल">
+    <br>
+    <input type="password" id="password" placeholder="पासवर्ड">
+    <br>
+    <button onclick="signup()">साइन अप</button>
+    <button onclick="login()">लॉगिन</button>
+</div>
+
+<!-- STUDENT -->
+<div id="student" class="card hidden">
+    <h3>छात्र पैनल</h3>
+
+    <div id="classArea" class="hidden">
+        <p id="className"></p>
+        <a id="zoomLink" target="_blank">
+            <button>Zoom में जुड़ें</button>
+        </a>
+    </div>
+</div>
+
+<!-- TEACHER -->
+<div id="teacher" class="card hidden">
+    <h3>शिक्षक पैनल</h3>
+
+    <input type="text" id="classInput" placeholder="कक्षा का नाम">
+    <br>
+    <input type="text" id="zoomInput" placeholder="Zoom लिंक">
+    <br>
+
+    <button onclick="startClass()">कक्षा शुरू करें</button>
+</div>
+
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+
+// 🔥 Firebase config यहाँ डालें
+var firebaseConfig = {
+  apiKey: "PUT-YOUR-KEY",
+  authDomain: "PUT-YOUR-DOMAIN",
+  databaseURL: "PUT-YOUR-URL"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+var auth = firebase.auth();
+var db = firebase.database();
+
+// Teacher emails
+const teachers = [
+"teacher@app.com",
+"school@app.com"
+];
+
+// SIGN UP
+function signup() {
+    let email = document.getElementById("email").value;
+    let pass = document.getElementById("password").value;
+
+    auth.createUserWithEmailAndPassword(email, pass)
+    .then(() => alert("खाता सफलतापूर्वक बनाया गया"))
+    .catch(e => alert(e.message));
+}
+
+// LOGIN
+function login() {
+    let email = document.getElementById("email").value;
+    let pass = document.getElementById("password").value;
+
+    auth.signInWithEmailAndPassword(email, pass)
+    .catch(e => alert(e.message));
+}
+
+// Auth state
+auth.onAuthStateChanged(user => {
+    if (user) {
+        document.getElementById("auth").classList.add("hidden");
+
+        if (teachers.includes(user.email)) {
+            document.getElementById("teacher").classList.remove("hidden");
+        } else {
+            document.getElementById("student").classList.remove("hidden");
+        }
+    }
+});
+
+// START CLASS
+function startClass() {
+
+    let now = new Date();
+
+    let makkahTime = new Date(
+        now.toLocaleString("en-US", { timeZone: "Asia/Riyadh" })
+    );
+
+    let day = makkahTime.getDay(); // Saturday = 6
+    let hours = makkahTime.getHours();
+    let minutes = makkahTime.getMinutes();
+
+    if (day === 6 && hours === 22 && minutes >= 45) {
+
+        let name = document.getElementById("classInput").value;
+        let link = document.getElementById("zoomInput").value;
+
+        db.ref("class").set({ name, link });
+
+        alert("कक्षा शुरू हो गई!");
+    }
+
+    else {
+        alert("कक्षा केवल शनिवार रात 10:45 बजे (मक्का समय) शुरू की जा सकती है");
+    }
+}
+
+// Show class
+db.ref("class").on("value", snap => {
+    let data = snap.val();
+    if (data) {
+        document.getElementById("classArea").classList.remove("hidden");
+        document.getElementById("className").innerText = "📚 " + data.name;
+        document.getElementById("zoomLink").href = data.link;
+    }
+});
+
+</script>
+
+</body>
+</html>
